@@ -1,0 +1,139 @@
+from bs4 import BeautifulSoup
+from urllib.request import Request, urlopen
+import pandas as pd
+import time
+from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import mysql.connector 
+from mysql.connector import Error
+
+
+
+# Sentiment analysis bot that reads sentiment of recent financial news and stores high sentiment rated newss to a a local mySQL server
+
+#URL used to scrape data from, with tickers that add onto url to scrape each website
+url = "https://finviz.com/quote.ashx?t="
+tickers = ["AAPL", "MSFT", "GOOGL"]
+
+
+    
+
+
+
+
+filter_array = []
+#function to webscrape using BeautifulSoup
+def WebScrape(tickers):
+    news = {}
+    data_array = []
+    time_array = []
+    ticker_array = []
+    for symbol in tickers:
+        fin_url = url +symbol
+        request = Request(url = fin_url,headers={'user-agent':'home'} )
+        response = urlopen(request)
+        html = BeautifulSoup(response, features='html.parser')
+        news = html.find(id="news-table")
+        data_rows = news.findAll('tr')
+        recent_data = data_rows[0].a.text
+        recent_time = data_rows[0].td.text
+        recent_time = recent_time.replace('\r', '').replace('\n', '').strip()
+        data_array.append(recent_data)
+        time_array.append(recent_time)
+        #ticker_array.append(symbol)    
+    return data_array,time_array
+    
+# function that keeps the last 10 financial news headlines
+def Filter(data_arr,time_arr,ticker_arr):
+    global filter_array
+    #print(filter_array)
+    for i in range(len(data_arr)):
+        if [ticker_arr[i],time_arr[i],data_arr[i]] not in filter_array:
+            filter_array.append([ticker_arr[i],time_arr[i],data_arr[i]])
+    if len(filter_array) == 10:
+        del filter_array[0]
+    return filter_array
+
+tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+
+
+pipe = pipeline("text-classification", model=model, tokenizer=tokenizer)
+
+database_datetime = []
+# Function that analyses the 10th value in the filtered array (most recent)
+# giving a sentiment and a score of the reliability
+# Here the transformers pipeline is used from Huggingface
+def SentimentAnalysis(arr):
+    global database_datetime
+    data = arr[-1][-1]
+    result = pipe(data)
+    print(f'Most recent data analysing: \n {arr[-1][0]} {arr[-1][1]} {arr[-1][2]}')
+   
+    
+    if result[0]['label'] != 'neutral' and result[0]['score'] >= 0.8 and arr[-1][-1] not in database_datetime:
+        print("Financial news of interest found....")
+        database_datetime.append(arr[-1][-1])
+        execute_query(connection,myQuery,arr[-1][0],arr[-1][1],arr[-1][2]) # This line sends the data if it matches conditions to database
+    if len(database_datetime) == 20:
+        database_datetime = []
+
+
+# This function establishes connection with mySQL server 
+def create_connection(host_name, user_name, user_password,data_base):
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host=host_name,
+            user=user_name,
+            password=user_password,
+            database = data_base
+        )
+        print("Connection to MySQL DB successful")
+    except Error as e:
+        print(f"The error '{e}' occurred")
+    return connection
+# This function executes the query that the other functions find
+def execute_query(connection, query,symbol,date,news):
+    cursor = connection.cursor()
+    try:
+        cursor.execute(query,(date,symbol,news))
+        connection.commit()
+        print(f" The query: \n {symbol}  {date}  {news} \n Succesfully sent to database...")
+    except Error as e:
+        print(f"The error '{e}' occurred")
+# data of the mySQL local server that data is sent to
+host = "localhost"
+user = "root"
+passkey = "YOUR_PASSWORD_HERE"
+data_base = "DATABASE_NAME_HERE"
+connection = create_connection(host,user,passkey,data_base)
+    
+#query that is executed using string formatting operator
+
+myQuery = '''INSERT INTO StockMessages (datetime, stock_ticker, message) 
+VALUES (%s, %s, %s); '''
+
+
+
+
+current = time.monotonic()
+timer = 60
+
+
+
+
+#Simple timer loop that runs every 60 seconds
+# All funcitons (webscrape,filter etc...) run once every 60 seconds
+while True:
+    if time.monotonic() > current + timer:
+        
+        data_arr,time_arr = WebScrape(tickers)
+        filter_array = Filter(data_arr,time_arr,tickers)
+        SentimentAnalysis(filter_array)
+        
+        current = time.monotonic()
+        
+
+
+
