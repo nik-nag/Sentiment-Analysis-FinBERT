@@ -39,4 +39,4 @@ The script will continuously monitor financial news for the specified tickers an
 ## Contact
 Nikith Nagaraj - nikithnagaraj@gmail.com
 
-Project Link: [https://github.com/nik-nag/financial-sentiment-analyzer](https://github.com/nik-nag/financial-sentiment-analyzer)
+Project Link: (https://github.com/nik-nag/financial-sentiment-analyzer)](https://github.com/nik-nag/Sentiment-Analysis-Bot/blob/main/Main)
