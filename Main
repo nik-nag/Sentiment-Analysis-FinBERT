@@ -38,6 +38,7 @@ def WebScrape(tickers):
         recent_data = data_rows[0].a.text
         recent_time = data_rows[0].td.text
         recent_time = recent_time.replace('\r', '').replace('\n', '').strip()
+        print(f'Data scraped: \n {symbol} : {recent_time} : {recent_data}')
         data_array.append(recent_data)
         time_array.append(recent_time)
         #ticker_array.append(symbol)    
@@ -68,7 +69,7 @@ def SentimentAnalysis(arr):
     global database_datetime
     data = arr[-1][-1]
     result = pipe(data)
-    print(f'Most recent data analysing: \n {arr[-1][0]} {arr[-1][1]} {arr[-1][2]}')
+    print('Analysing recent news for sentiment')
    
     
     if result[0]['label'] != 'neutral' and result[0]['score'] >= 0.8 and arr[-1][-1] not in database_datetime:
