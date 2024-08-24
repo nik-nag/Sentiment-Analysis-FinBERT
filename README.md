@@ -33,6 +33,7 @@ The script will continuously monitor financial news for the specified tickers an
 - Expand the list of monitored stock tickers
 - Develop a user interface for easier interaction with the stored data
 - Add data visualisation, perhaps in seaborn
+- Code needs to be cleaned up, made neater and perhaps be converted into Class format
 
 
 
